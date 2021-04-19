@@ -1,0 +1,119 @@
+server:
+  port: ${port:8089}
+
+spring:
+  jmx:
+    enabled: true
+  application:
+    name: ${name:partners-purchase-order-batch}
+  profiles:
+    active: ${profiles_active:local}
+  data:
+    mongodb:
+      uri: ${mongodb_uri:mongodb://root:password@localhost:27017/partners-purchase-order-batch?authSource=admin&maxIdleTimeMS=15000}
+  rabbitmq:
+    addresses: ${rabbit_addresses:localhost:5672}
+    username: ${rabbit_username:guest}
+    password: ${rabbit_password:guest}
+    virtual-host: ${rabbit_virtualhost:/}
+  cloud:
+    stream:
+      bindings:
+        publishPartnersPurchaseOrderRequested:
+          destination: x-partners-purchase-order-requested
+        publishPartnersPurchaseOrderRequestedError:
+          destination: x-partners-purchase-order-batch-requested-error
+        publishVMIRequested:
+          destination: x-vmi-leroy-batch-requested
+        publishVMIRequestedError:
+          destination: x-vmi-leroy-batch-requested-error
+      rabbit:
+        bindings:
+          publishPartnersPurchaseOrderRequested:
+            producer:
+              exchangeType: fanout
+          publishPartnersPurchaseOrderRequestedError:
+            producer:
+              exchangeType: fanout
+          publishVMIRequested:
+            producer:
+              exchangeType: fanout
+          publishVMIRequestedError:
+            producer:
+              exchangeType: fanout
+      binders:
+        rabbit_local:
+          type: rabbit
+          environment:
+            spring:
+              rabbitmq:
+                host: ${rabbit_host:localhost}
+                port: ${rabbit_port:5672}
+                username: ${rabbit_username:guest}
+                password: ${rabbit_password:guest}
+                virtual-host: /
+management:
+  endpoints:
+    web:
+      base-path: /
+      path-mapping:
+        health: healthcheck
+  endpoint:
+    health:
+      show-details: "ALWAYS"
+
+app:
+  gatewayOauthRedirectUrl: ${app_cf_adapter_gateway_oauth_redirect_url:http://localhost/}
+  gatewayGrantCodeUri: /oauth/grant-code
+  gatewayAccessTokenUri: /oauth/access-token
+  basePath: ${app_purchase_order_base_path_leroy:http://api-portobello.sensedia.com/purchase-orders/v1}
+  gatewayClientId: ${app_purchase_order_gateway_client_id:1974cf21-585c-3cf0-bc65-83601c676178}
+  gatewayClientSecret: ${app_purchase_order_gateway_client_secret:ce5a68c5-567f-3181-890a-4144cbdae977}
+  oAuthEnpoint: ${app_purchase_order_oauth_url:https://api-portobello.sensedia.com}
+  rabbitmq: LeroyPVMIIntegration
+  delayInMilliseconds: ${app_rabbitmq_delayInMilliseconds:1000} # 15 minutes
+  maximumNumberOfRetries: ${app_rabbitmq_maximumNumberOfRetries:3}
+  leroy:
+    order:
+      enabled: ${app_purchase_order_jobs_enabled_leroy:false}
+    vmi:
+      vmiEndpoint: ${app_product_vmi_gateway_leroy:/leroy/product/vmi/{id}}
+      productVMI: ${app_product_vmi_gateway_leroy:/leroy/vmi/stockStatus}
+      stockLevelVMI: ${app_product_vmi_gateway_leroy:/leroy/vmi/stockLevel}
+      enabled: ${app_vmi_jobs_enabled_leroy:true}
+    purchaseOrdersEndpoint: ${app_purchase_order_gateway_leroy:/leroy}
+  pba:
+    supplierId: ${app_supplier_id_pba:133,1418}
+    enabled: ${app_purchase_order_jobs_enabled_pba:false}
+    purchaseOrdersEndpoint: ${app_purchase_order_gateway_pba:/pba/purchase}
+    customerEndpoint: ${app_customer_gateway_pba:/pba/costumers/{id}}
+    salesOrdersEndpoint: ${app_sales_order_gateway_pba:/pba/sales/{id}}
+    defaultCustomerNumber: ${app_default_custom_number:000001234}
+    allowedTransactionStatus: ${app_allowed_transactions_status:READY}
+  sensedia:
+    credentials:
+      client-id: 1974cf21-585c-3cf0-bc65-83601c676178
+      client-secret: ce5a68c5-567f-3181-890a-4144cbdae977
+    baseUrl: https://api-portobello.sensedia.com/qas
+  ebs:
+    estoqueEndpoint: ${app_estoque_gateway_ebs:/ords/estoque}
+  build:
+    groupId: '@project.groupId@'
+    artifactId: '@project.artifactId@'
+    version: '@project.version@'
+    date: '@timestamp@'
+fixedDelay:
+  leroy.in.milliseconds: ${app_purchase_order_leroy_fixedDelay_in_millis:600000}
+  pba.in.milliseconds: ${app_purchase_order_pba_fixedDelay_in_millis:600000}
+  vmin.in.milliseconds: ${app_purchase_order_leroy_fixedDelay_in_millis:180000000}
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 60000
+        readTimeout: 60000
+        loggerLevel: full
+      ordsInvoiceIntegration:
+        connectTimeout: 300000
+        readTimeout: 300000
+        loggerLevel: full
